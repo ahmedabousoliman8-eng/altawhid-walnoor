@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>التوحيد ونور - منصة رسائل</title>
+  <style>
+    :root{--bg:#0b0b0b;--card:#111;--muted:#8b8b8b;--accent:#008cff;--success:#25d366}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Tahoma,system-ui,Segoe UI,Roboto,Arial,"Noto Naskh Arabic";background:var(--bg);color:#fff}
+    header{background:#000;padding:18px 20px;text-align:center;font-size:26px;font-weight:700}
+    .wrap{max-width:1100px;margin:18px auto;padding:12px}
+    .row{display:flex;gap:16px}
+    .col{background:var(--card);padding:14px;border-radius:12px}
+    .sidebar{width:280px}
+    .main{flex:1;display:flex;flex-direction:column}
+    .input, .select, .btn{width:100%;padding:10px;border-radius:10px;border:none;font-size:16px}
+    .input{background:#0d0d0d;color:#fff}
+    .btn{background:var(--accent);color:#fff;cursor:pointer}
+    .small{font-size:14px;color:var(--muted)}
+    .users-list{max-height:400px;overflow:auto;margin-top:10px}
+    .user-item{padding:10px;border-radius:8px;margin-bottom:8px;background:#0d0d0d;cursor:pointer}
+    .user-item.active{outline:2px solid rgba(0,140,255,0.12)}
+    .chat-area{display:flex;flex-direction:column;height:520px}
+    .messages{flex:1;overflow:auto;padding:10px;background:#070707;border-radius:10px}
+    .msg{padding:8px;margin-bottom:8px;border-radius:10px;max-width:75%}
+    .msg.me{background:#063a74;margin-left:auto}
+    .msg.other{background:#222}
+    .composer{display:flex;gap:8px;margin-top:8px}
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#0b6;border-color:#0b6}
+    .whatsapp{position:fixed;left:20px;bottom:20px;background:var(--success);padding:14px;border-radius:50%;color:#fff;font-size:24px;text-decoration:none}
+    .tabs{display:flex;gap:8px}
+    .tab{padding:8px 12px;background:#0d0d0d;border-radius:8px;cursor:pointer}
+    .admin-panel{display:none}
+    .notice{background:#111;padding:10px;border-radius:8px;margin-top:8px}
+    footer{padding:12px;text-align:center;color:var(--muted)}
+    @media(max-width:900px){.row{flex-direction:column}.sidebar{width:100%}}
+  </style>
+</head>
+<body>
+  <header>منصة التوحيد ونور</header>
+
+  <div class="wrap">
+
+    <!-- Login / Signup -->
+    <div id="authBox" class="col" style="max-width:480px;margin:auto;">
+      <h2>تسجيل جديد / تسجيل دخول</h2>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input id="authName" class="input" placeholder="اسم المستخدم" />
+        <input id="authPass" type="password" class="input" placeholder="كلمة السر" />
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn" onclick="signup()">إنشاء حساب</button>
+        <button class="btn" style="background:#555" onclick="login()">دخول</button>
+      </div>
+      <p class="small">تلميح: لإنشاء حساب أدمن استخدم اسم: <strong>admin</strong> وكلمة: <strong>admin123</strong></p>
+      <div class="notice">
+        هذا نسخة تعمل بدون سيرفر (Static). للتشغيل كامل حقيقي (مزامنة بين المستخدمين وإرسال إشعارات) سأركب لك باك-إند وقاعدة بيانات عند الطلب.
+      </div>
+    </div>
+
+    <!-- App -->
+    <div id="app" style="display:none">
+      <div class="row">
+        <div class="col sidebar">
+          <div style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+            <div>
+              <div id="meName" style="font-weight:700;font-size:18px"></div>
+              <div id="meEmail" class="small"></div>
+            </div>
+            <div>
+              <button class="btn" style="background:#444;padding:8px 10px;font-size:14px" onclick="logout()">خروج</button>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <div style="display:flex;gap:8px">
+              <input id="searchUser" class="input" placeholder="ابحث مستخدم" oninput="renderUsers()" />
+              <button class="btn" style="width:110px" onclick="openNewChat()">محادثة جديدة</button>
+            </div>
+          </div>
+
+          <h3 style="margin-top:12px">المستخدمون</h3>
+          <div id="usersList" class="users-list"></div>
+
+          <h3 style="margin-top:12px">القنوات العامة</h3>
+          <div id="roomsList" class="users-list"></div>
+
+          <div style="margin-top:12px">
+            <button class="btn" onclick="toggleAdmin()">لوحة الأدمن</button>
+          </div>
+        </div>
+
+        <div class="col main">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div id="chatTitle" style="font-weight:700;font-size:20px">اختر مستخدماً أو قناة لبدء الدردشة</div>
+              <div id="chatSub" class="small"></div>
+            </div>
+            <div class="tabs">
+              <div class="tab" onclick="switchTo('public')">عام</div>
+              <div class="tab" onclick="switchTo('private')">خاص</div>
+            </div>
+          </div>
+
+          <div class="chat-area">
+            <div id="messages" class="messages"></div>
+
+            <div class="composer">
+              <input id="msgInput" class="input" placeholder="اكتب رسالة..." onkeydown="if(event.key==='Enter') sendMessage()" />
+              <button class="btn" onclick="sendMessage()">إرسال</button>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+            <div class="small">مشاركة سريع عبر:</div>
+            <a id="whLink" href="#" target="_blank" class="small">واتساب</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Panel -->
+      <div id="adminPanel" class="col admin-panel" style="margin-top:14px">
+        <h3>لوحة الأدمن</h3>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="newRoomName" class="input" placeholder="اسم القناة العامة" />
+          <button class="btn" onclick="createRoom()">إنشاء قناة</button>
+        </div>
+        <div style="margin-top:10px">
+          <h4>المستخدمون</h4>
+          <div id="adminUsers" class="users-list"></div>
+        </div>
+        <div style="margin-top:10px">
+          <h4>الرسائل (كلها)</h4>
+          <div id="allMsgs" style="max-height:200px;overflow:auto;background:#070707;padding:8px;border-radius:8px"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <footer>التوحيد ونور © جميع الحقوق محفوظة</footer>
+  </div>
+
+  <a class="whatsapp" id="whatsappBtn" href="https://wa.me/201000000000" target="_blank">💬</a>
+
+<script>
+// Simple client-side "backend" using localStorage. This is to make the prototype fully functional without server.
+// Data structures saved in localStorage:
+// users: {username:{password, name}}  -- usernames unique
+// rooms: [roomName,...]
+// messages: [{id,from,to,room,text,ts}]
+
+const LS_USERS = 'tw_users_v1';
+const LS_ROOMS = 'tw_rooms_v1';
+const LS_MSGS = 'tw_msgs_v1';
+const LS_ME = 'tw_me_v1';
+
+function load(key, def){ const s = localStorage.getItem(key); return s?JSON.parse(s):def; }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+// init default data
+if(!localStorage.getItem(LS_USERS)){
+  const u = { 'admin':{password:'admin123',name:'مدير النظام'}, 'user1':{password:'1234',name:'مستخدم 1'}, 'user2':{password:'1234',name:'مستخدم 2'} };
+  save(LS_USERS,u);
+}
+if(!localStorage.getItem(LS_ROOMS)) save(LS_ROOMS,['عام']);
+if(!localStorage.getItem(LS_MSGS)) save(LS_MSGS,[]);
+
+let currentChat = {type:null, id:null}; // type: 'room' or 'user'
+let me = load(LS_ME,null);
+
+function signup(){
+  const name = document.getElementById('authName').value.trim();
+  const pass = document.getElementById('authPass').value.trim();
+  if(!name||!pass){alert('اكتب اسم مستخدم وكلمة سر');return}
+  const users = load(LS_USERS,{});
+  if(users[name]){alert('الاسم مستخدم بالفعل');return}
+  users[name] = {password:pass,name:name};
+  save(LS_USERS,users);
+  alert('تم إنشاء الحساب. سجل الدخول الآن.');
+}
+
+function login(){
+  const name = document.getElementById('authName').value.trim();
+  const pass = document.getElementById('authPass').value.trim();
+  const users = load(LS_USERS,{});
+  if(!users[name] || users[name].password !== pass){alert('خطأ في البيانات');return}
+  me = {username:name,name:users[name].name};
+  save(LS_ME,me);
+  showApp();
+}
+
+function logout(){ localStorage.removeItem(LS_ME); me=null; location.reload(); }
+
+function showApp(){
+  document.getElementById('authBox').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('meName').innerText = me.name + ' ('+me.username+')';
+  renderUsers(); renderRooms(); renderAdminUsers(); renderAllMsgs();
+}
+
+function renderUsers(){
+  const container = document.getElementById('usersList'); container.innerHTML='';
+  const users = load(LS_USERS,{});
+  const q = document.getElementById('searchUser').value.trim().toLowerCase();
+  Object.keys(users).forEach(u=>{
+    if(u===me.username) return; // don't show self
+    if(q && u.toLowerCase().indexOf(q)===-1 && (users[u].name||'').toLowerCase().indexOf(q)===-1) return;
+    const el = document.createElement('div'); el.className='user-item'; el.innerText = users[u].name + ' — ' + u;
+    el.onclick = ()=>{ openPrivate(u); }
+    container.appendChild(el);
+  });
+}
+
+function renderRooms(){
+  const rooms = load(LS_ROOMS,[]);
+  const c = document.getElementById('roomsList'); c.innerHTML='';
+  rooms.forEach(r=>{
+    const el = document.createElement('div'); el.className='user-item'; el.innerText = r;
+    el.onclick = ()=>{ openRoom(r); }
+    c.appendChild(el);
+  });
+}
+
+function openPrivate(username){
+  currentChat = {type:'user',id:username};
+  const users = load(LS_USERS,{});
+  document.getElementById('chatTitle').innerText = users[username].name + ' — محادثة خاصة';
+  document.getElementById('chatSub').innerText = 'دردشة مباشرة بينك وبين '+users[username].name;
+  renderMessages();
+}
+
+function openRoom(room){
+  currentChat = {type:'room',id:room};
+  document.getElementById('chatTitle').innerText = 'قناة: ' + room;
+  document.getElementById('chatSub').innerText = 'قناة عامة يراها كل مستخدمين المنصة';
+  renderMessages();
+}
+
+function sendMessage(){
+  const text = document.getElementById('msgInput').value.trim(); if(!text) return;
+  const msgs = load(LS_MSGS,[]);
+  const id = 'm'+Date.now();
+  const item = {id,from:me.username,to: currentChat.type === 'user' ? currentChat.id : null, room: currentChat.type === 'room' ? currentChat.id : null, text, ts: new Date().toISOString() };
+  msgs.push(item); save(LS_MSGS,msgs);
+  document.getElementById('msgInput').value='';
+  renderMessages(); renderAllMsgs();
+}
+
+function renderMessages(){
+  const box = document.getElementById('messages'); box.innerHTML='';
+  if(!currentChat.type){ box.innerHTML = '<div class="small">اختر مستخدماً أو قناة لعرض الرسائل</div>'; return }
+  const msgs = load(LS_MSGS,[]);
+  const filtered = msgs.filter(m=>{
+    if(currentChat.type==='room') return m.room === currentChat.id;
+    return (m.room===null && ((m.from===me.username && m.to===currentChat.id) || (m.from===currentChat.id && m.to===me.username)));
+  });
+  filtered.forEach(m=>{
+    const el = document.createElement('div'); el.className='msg '+(m.from===me.username?'me':'other');
+    el.innerHTML = '<div style="font-size:13px;color:var(--muted)">'+m.from+' • '+(new Date(m.ts)).toLocaleString()+'</div><div style="margin-top:6px">'+escapeHtml(m.text)+'</div>';
+    box.appendChild(el);
+  });
+  box.scrollTop = box.scrollHeight;
+  // update share link
+  const share = encodeURIComponent((filtered.map(x=>x.from+': '+x.text).join('\n')));
+  document.getElementById('whLink').href = 'https://wa.me/?text='+share;
+}
+
+function escapeHtml(s){ return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+function openNewChat(){ const name = prompt('اكتب اسم المستخدم الذي تريد بدء محادثة معه (username)'); if(!name) return; const users = load(LS_USERS,{}); if(!users[name]){ alert('المستخدم غير موجود'); return } openPrivate(name); }
+
+function switchTo(type){ if(type==='public'){ currentChat = {type:'room', id: load(LS_ROOMS,[])[0]}; openRoom(currentChat.id);} else { currentChat = {type:null,id:null}; document.getElementById('chatTitle').innerText='اختر مستخدماً أو قناة لبدء الدردشة'; document.getElementById('messages').innerHTML=''; }}
+
+ // Admin features
+function toggleAdmin(){
+  const isAdmin = me && me.username==='admin';
+  if(!isAdmin){ alert('لوحة الأدمن متاحة فقط للأدمن'); return }
+  const p = document.getElementById('adminPanel'); p.style.display = p.style.display==='block'? 'none' : 'block'; renderAdminUsers(); renderAllMsgs();
+}
+
+function createRoom(){ const name = document.getElementById('newRoomName').value.trim(); if(!name) return; const rooms = load(LS_ROOMS,[]); if(rooms.includes(name)){alert('القناة موجودة');return} rooms.push(name); save(LS_ROOMS,rooms); renderRooms(); document.getElementById('newRoomName').value=''; }
+
+function renderAdminUsers(){ const cont = document.getElementById('adminUsers'); cont.innerHTML=''; const users = load(LS_USERS,{}); Object.keys(users).forEach(u=>{ const el=document.createElement('div'); el.className='user-item'; el.innerText = u + ' • ' + (users[u].name||''); el.onclick = ()=>{ if(confirm('حذف المستخدم '+u+' ؟')){ delete users[u]; save(LS_USERS,users); renderUsers(); renderAdminUsers(); } }; cont.appendChild(el); }); }
+
+function renderAllMsgs(){ const el = document.getElementById('allMsgs'); if(!el) return; const msgs = load(LS_MSGS,[]); el.innerHTML = msgs.map(m=>('['+new Date(m.ts).toLocaleString()+'] '+m.from+' → '+(m.room||m.to||'')+': '+escapeHtml(m.text))).join('<br/>'); }
+
+// On load check session
+window.addEventListener('load',()=>{
+  if(me){ showApp(); }
+});
+
+// For convenience allow pressing Ctrl+K to focus search
+window.addEventListener('keydown',e=>{ if(e.ctrlKey && e.key.toLowerCase()==='k'){ e.preventDefault(); document.getElementById('searchUser').focus(); } });
+
+</script>
+</body>
+</html>
